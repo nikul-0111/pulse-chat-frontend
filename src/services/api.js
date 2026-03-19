@@ -21,19 +21,19 @@ async function request(path, options = {}, token = null) {
 // Auth
 export const authAPI = {
   register: (body) =>
-    request("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+    request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
   login: (body) =>
-    request("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+    request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
 };
 
 // Users
 export const usersAPI = {
-  getAll: (token) => request("/users", {}, token),
+  getAll: (token) => request("/api/users", {}, token),
 };
 
 // Messages
 export const messagesAPI = {
-  getConversation: (userId, token) => request(`/messages/${userId}`, {}, token),
+  getConversation: (userId, token) => request(`/api/messages/${userId}`, {}, token),
   markRead: (senderId, token) =>
-    request(`/messages/read/${senderId}`, { method: "PATCH" }, token),
+    request(`/api/messages/read/${senderId}`, { method: "PATCH" }, token),
 };
