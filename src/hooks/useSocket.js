@@ -1,50 +1,77 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+const URL = "http://localhost:5000"; // change if deployed
 
-let socket = null;
-
-export function useSocket(userId, callbacks = {}) {
-  const cbRef = useRef(callbacks);
-  cbRef.current = callbacks;
+export const useSocket = (userId, handlers = {}) => {
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    if (!userId) return;
+    // ✅ prevent multiple connections
+    if (!userId || socketRef.current) return;
 
-    socket = io(SOCKET_URL, {
+    const socket = io(URL, {
       query: { userId },
-      transports: ["websocket"],
+      transports: ["websocket"], // stable connection
     });
 
-    socket.on("message:receive",  (msg) => cbRef.current.onMessage?.(msg));
-    socket.on("message:sent",     (msg) => cbRef.current.onMessageSent?.(msg));
-    socket.on("typing:start", ({ senderId }) => cbRef.current.onTypingStart?.(senderId));
-    socket.on("typing:stop",  ({ senderId }) => cbRef.current.onTypingStop?.(senderId));
-    socket.on("users:online",    (ids)  => cbRef.current.onOnlineUsers?.(ids));
-    socket.on("message:read", ({ messageId }) => cbRef.current.onRead?.(messageId));
+    socketRef.current = socket;
 
+    // ✅ CONNECT
+    socket.on("connect", () => {
+      console.log("🟢 Connected:", socket.id);
+    });
+
+    // ✅ MESSAGE RECEIVE
+    socket.on("message:receive", (msg) => {
+      handlers.onMessage?.(msg);
+    });
+
+    // ✅ MESSAGE SENT
+    socket.on("message:sent", (msg) => {
+      handlers.onMessageSent?.(msg);
+    });
+
+    // ✅ TYPING
+    socket.on("typing:start", ({ senderId }) => {
+      handlers.onTypingStart?.(senderId);
+    });
+
+    socket.on("typing:stop", ({ senderId }) => {
+      handlers.onTypingStop?.(senderId);
+    });
+
+    // ✅ ONLINE USERS
+    socket.on("users:online", (ids) => {
+      handlers.onOnlineUsers?.(ids);
+    });
+
+    // ✅ READ RECEIPT
+    socket.on("message:read", (data) => {
+      handlers.onRead?.(data);
+    });
+
+    // ❗ cleanup only on unmount
     return () => {
-      socket?.disconnect();
-      socket = null;
+      socket.disconnect();
+      socketRef.current = null;
     };
   }, [userId]);
 
-  const sendMessage = useCallback((receiverId, text) => {
-    socket?.emit("message:send", { receiverId, text });
-  }, []);
+  // ✅ SEND MESSAGE
+  const sendMessage = (receiverId, text) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit("message:send", { receiverId, text });
+  };
 
-  const startTyping = useCallback((receiverId) => {
-    socket?.emit("typing:start", { receiverId });
-  }, []);
+  // ✅ TYPING EVENTS
+  const startTyping = (receiverId) => {
+    socketRef.current?.emit("typing:start", { receiverId });
+  };
 
-  const stopTyping = useCallback((receiverId) => {
-    socket?.emit("typing:stop", { receiverId });
-  }, []);
+  const stopTyping = (receiverId) => {
+    socketRef.current?.emit("typing:stop", { receiverId });
+  };
 
-  const markRead = useCallback((messageId, senderId) => {
-    socket?.emit("message:read", { messageId, senderId });
-  }, []);
-
-  return { sendMessage, startTyping, stopTyping, markRead };
-}
+  return { sendMessage, startTyping, stopTyping };
+};

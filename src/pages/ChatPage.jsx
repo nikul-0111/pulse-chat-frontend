@@ -15,6 +15,39 @@ export default function ChatPage() {
   const [typingUsers, setTypingUsers] = useState({});
   const [loadingMsgs, setLoadingMsgs] = useState(false);
 
+ const handleDeleteMessages = async (ids) => {
+  if (!activeUser) return;
+
+  // 🔹 backup old messages (for rollback)
+  const oldMessages = messages[activeUser._id] || [];
+
+  // 🔹 optimistic UI update
+  setMessages((prev) => {
+    const updated = { ...prev };
+    updated[activeUser._id] = oldMessages.filter(
+      (msg) => !ids.includes(msg._id)
+    );
+    return updated;
+  });
+
+  try {
+    console.log("Deleting IDs:", ids);
+    console.log("TOKEN:", token);
+
+    // 🔹 call backend
+    await messagesAPI.deleteMessages(ids, token);
+
+  } catch (err) {
+    console.error("Delete failed:", err.message);
+
+    // ❌ rollback if failed
+    setMessages((prev) => ({
+      ...prev,
+      [activeUser._id]: oldMessages,
+    }));
+  }
+};
+
   // Load users
   useEffect(() => {
     usersAPI.getAll(token).then(setUsers).catch(console.error);
@@ -23,9 +56,9 @@ export default function ChatPage() {
   // Load messages
   useEffect(() => {
     if (!activeUser) return;
-    if (messages[activeUser._id]) return;
 
     setLoadingMsgs(true);
+
     messagesAPI
       .getConversation(activeUser._id, token)
       .then((msgs) => {
@@ -33,7 +66,20 @@ export default function ChatPage() {
           ...prev,
           [activeUser._id]: msgs.map(addTimeLabel),
         }));
+
+        // mark read in backend
         messagesAPI.markRead(activeUser._id, token).catch(() => {});
+
+        // instant UI update
+        setMessages((prev) => {
+          const updated = { ...prev };
+          updated[activeUser._id] = (updated[activeUser._id] || []).map((m) =>
+            m.senderId === activeUser._id
+              ? { ...m, status: "read" }
+              : m
+          );
+          return updated;
+        });
       })
       .catch(console.error)
       .finally(() => setLoadingMsgs(false));
@@ -117,25 +163,17 @@ export default function ChatPage() {
     <div style={styles.container}>
       
       {/* Sidebar */}
-      <div style={styles.sidebar}>
-        <div style={styles.sidebarHeader}>
-          <h2 style={{ margin: 0 }}>💬 Pulse Chat</h2>
-          <button onClick={logout} style={styles.logoutBtn}>
-            Logout
-          </button>
-        </div>
+      <Sidebar
+        users={enrichedUsers}
+        messages={messages}
+        activeUser={activeUser}
+        onSelect={setActiveUser}
+        currentUser={user}
+        onlineUserIds={onlineUserIds}
+        onLogout={logout}
+      />
 
-        <Sidebar
-          users={enrichedUsers}
-          messages={messages}
-          activeUser={activeUser}
-          onSelect={setActiveUser}
-          currentUser={user}
-          onlineUserIds={onlineUserIds}
-        />
-      </div>
-
-      {/* Chat Area */}
+      {/* Chat */}
       <div style={styles.chatArea}>
         {activeUser ? (
           <ChatWindow
@@ -150,11 +188,12 @@ export default function ChatPage() {
             onSendMessage={handleSend}
             onStartTyping={startTyping}
             onStopTyping={stopTyping}
+            onDeleteMessages={handleDeleteMessages} // ✅ IMPORTANT
           />
         ) : (
           <div style={styles.emptyState}>
             <h2>Select a conversation</h2>
-            <p>Start chatting with your friends 🚀</p>
+            <p>Start chatting 🚀</p>
           </div>
         )}
       </div>
@@ -167,41 +206,18 @@ const styles = {
   container: {
     display: "flex",
     height: "100vh",
-    backgroundColor: "#f4f7fb",
-    fontFamily: "'Inter', sans-serif",
-  },
-  sidebar: {
-    width: "300px",
-    background: "#0f172a",
-    color: "#fff",
-    display: "flex",
-    flexDirection: "column",
-  },
-  sidebarHeader: {
-    padding: "15px",
-    borderBottom: "1px solid #1e293b",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  logoutBtn: {
-    background: "#ef4444",
-    border: "none",
-    padding: "6px 12px",
-    color: "#fff",
-    borderRadius: "6px",
-    cursor: "pointer",
+    background: "#0b0f19",
   },
   chatArea: {
     flex: 1,
     display: "flex",
     flexDirection: "column",
-    background: "#e5e7eb",
+    background: "#0f172a",
   },
   emptyState: {
     margin: "auto",
     textAlign: "center",
-    color: "#64748b",
+    color: "#94a3b8",
   },
 };
 

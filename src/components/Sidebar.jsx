@@ -1,17 +1,29 @@
 import { useState } from "react";
 
-const AVATAR_COLORS = ["#5C6BC0","#E91E63","#00897B","#F4511E","#8E24AA","#039BE5","#d97706","#0891b2"];
+const AVATAR_COLORS = ["#6366f1","#ec4899","#14b8a6","#f97316","#a855f7","#0ea5e9"];
 
-function Avatar({ name = "", size = 40 }) {
-  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+function Avatar({ name = "", size = 42 }) {
+  const initials = name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const bg = AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+
   return (
     <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: bg, display: "flex", alignItems: "center",
-      justifyContent: "center", fontSize: size * 0.36,
-      fontWeight: 700, color: "#fff", flexShrink: 0,
-      letterSpacing: "0.02em",
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      background: bg,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 700,
+      color: "#fff",
+      fontSize: 14
     }}>
       {initials}
     </div>
@@ -29,212 +41,181 @@ export default function Sidebar({
 }) {
   const [search, setSearch] = useState("");
 
-  const filtered = users.filter((u) =>
-    u.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const getLastMsg = (userId) => {
-    const msgs = messages[userId] || [];
-    return msgs[msgs.length - 1] || null;
-  };
-
   const getUnread = (userId) =>
     (messages[userId] || []).filter(
       (m) => m.senderId === userId && m.status !== "read"
     ).length;
 
-  return (
-    <aside style={s.root}>
+  const getLastMsg = (id) => {
+    const msgs = messages[id] || [];
+    return msgs[msgs.length - 1];
+  };
 
-      {/* Top bar */}
-      <div style={s.topBar}>
-        <div style={s.brand}>
-          <span style={{ fontSize: 22 }}>💬</span>
-          <span style={s.brandName}>PulseChat</span>
-        </div>
-        <button onClick={onLogout} style={s.logoutBtn} title="Sign out">
-          ⬡
-        </button>
+  const filtered = users.filter((u) =>
+    u.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div style={s.container}>
+
+      {/* Header */}
+      <div style={s.header}>
+        <h2 style={{ margin: 0 }}>Pulse Chat</h2>
       </div>
 
       {/* Search */}
-      <div style={s.searchBox}>
-        <span style={{ fontSize: 14, color: "#555" }}>🔍</span>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search…"
-          style={s.searchInput}
-        />
-      </div>
+      <input
+        placeholder="Search users..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={s.search}
+      />
 
-      {/* Section label */}
-      <p style={s.sectionLabel}>Conversations</p>
-
-      {/* List */}
+      {/* Users */}
       <div style={s.list}>
-        {filtered.length === 0 && (
-          <p style={s.empty}>No users found</p>
-        )}
         {filtered.map((u) => {
-          const last    = getLastMsg(u._id);
-          const unread  = getUnread(u._id);
-          const active  = activeUser?._id === u._id;
-          const online  = onlineUserIds.includes(u._id);
+          const unread = getUnread(u._id);
+          const last = getLastMsg(u._id);
 
           return (
-            <button
+            <div
               key={u._id}
               onClick={() => onSelect(u)}
               style={{
-                ...s.row,
-                background: active ? "#1a1a1a" : "transparent",
-                borderLeft: active ? "3px solid #E8FF47" : "3px solid transparent",
+                ...s.user,
+                background:
+                  activeUser?._id === u._id ? "#1e293b" : "transparent",
               }}
             >
-              {/* Avatar + status dot */}
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <Avatar name={u.name} size={44} />
-                <span style={{
-                  position: "absolute", bottom: 1, right: 1,
-                  width: 11, height: 11, borderRadius: "50%",
-                  background: online ? "#4ade80" : "#333",
-                  border: "2px solid #111",
-                }} />
-              </div>
+              <Avatar name={u.name} />
 
-              {/* Info */}
-              <div style={s.rowInfo}>
+              <div style={{ flex: 1 }}>
                 <div style={s.rowTop}>
-                  <span style={s.rowName}>{u.name}</span>
-                  <span style={s.rowTime}>{last?.timeLabel || ""}</span>
+                  <span>{u.name}</span>
+                  <span style={s.time}>{last?.timeLabel}</span>
                 </div>
+
                 <div style={s.rowBottom}>
-                  <span style={s.rowLast}>
+                  <span style={s.lastMsg}>
                     {last
-                      ? (last.senderId === currentUser?._id ? "You: " : "") + last.text
-                      : "No messages yet"}
+                      ? (last.senderId === currentUser._id ? "You: " : "") +
+                        last.text
+                      : "No messages"}
                   </span>
-                  {unread > 0 && <span style={s.badge}>{unread}</span>}
+
+                  {unread > 0 && (
+                    <span style={s.badge}>{unread}</span>
+                  )}
                 </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
 
-      {/* My profile */}
-      <div style={s.me}>
-        <Avatar name={currentUser?.name || "Me"} size={36} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#ddd", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {currentUser?.name || "You"}
-          </p>
-          <p style={{ margin: 0, fontSize: 11, color: "#4ade80" }}>● Online</p>
+      {/* ✅ LOGGED IN USER (BOTTOM FIXED) */}
+      <div style={s.bottom}>
+        <Avatar name={currentUser?.name} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600 }}>{currentUser?.name}</div>
+          <div style={{ fontSize: 12, color: "#22c55e" }}>Online</div>
         </div>
-        <button onClick={onLogout} style={{ background: "none", border: "none", color: "#444", cursor: "pointer", fontSize: 16 }}>
-          ⎋
+        <button onClick={onLogout} style={s.logout}>
+          Logout
         </button>
       </div>
-    </aside>
+    </div>
   );
 }
 
 const s = {
-  root: {
-    width: 280,
-    background: "#111111",
-    borderRight: "1px solid #1f1f1f",
+  container: {
+    width: 300,
+    height: "100vh",
     display: "flex",
     flexDirection: "column",
-    flexShrink: 0,
-    fontFamily: "'Outfit', sans-serif",
-  },
-  topBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "18px 16px 14px",
-    borderBottom: "1px solid #1f1f1f",
-  },
-  brand: { display: "flex", alignItems: "center", gap: 8 },
-  brandName: {
-    fontSize: 18,
-    fontWeight: 800,
+    background: "#0f172a",
     color: "#fff",
-    letterSpacing: "-0.03em",
   },
-  logoutBtn: {
-    background: "#1a1a1a",
-    border: "1px solid #2a2a2a",
+
+  header: {
+    padding: 16,
+    borderBottom: "1px solid #1e293b",
+    fontWeight: 700,
+  },
+
+  search: {
+    margin: 12,
+    padding: 10,
     borderRadius: 8,
-    color: "#555",
-    width: 30,
-    height: 30,
-    cursor: "pointer",
-    fontSize: 14,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchBox: {
-    margin: "10px 12px 6px",
-    background: "#1a1a1a",
-    border: "1px solid #222",
-    borderRadius: 10,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "8px 12px",
-  },
-  searchInput: {
-    background: "transparent",
     border: "none",
     outline: "none",
-    color: "#ccc",
-    fontSize: 13,
-    width: "100%",
-    fontFamily: "'Outfit', sans-serif",
+    background: "#1e293b",
+    color: "#fff",
   },
-  sectionLabel: {
+
+  list: {
+    flex: 1,
+    overflowY: "auto",
+  },
+
+  user: {
+    display: "flex",
+    gap: 10,
+    padding: 12,
+    cursor: "pointer",
+    alignItems: "center",
+  },
+
+  rowTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 14,
+  },
+
+  rowBottom: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 12,
+    marginTop: 4,
+  },
+
+  lastMsg: {
+    color: "#94a3b8",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    maxWidth: 150,
+  },
+
+  time: {
+    fontSize: 10,
+    color: "#64748b",
+  },
+
+  badge: {
+    background: "#22c55e",
+    borderRadius: 20,
+    padding: "2px 6px",
     fontSize: 10,
     fontWeight: 700,
-    color: "#444",
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
-    padding: "10px 16px 4px",
   },
-  list: { flex: 1, overflowY: "auto" },
-  empty: { color: "#444", fontSize: 13, textAlign: "center", marginTop: 32 },
-  row: {
-    width: "100%",
+
+  bottom: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    borderTop: "1px solid #1e293b",
+    background: "#020617",
+  },
+
+  logout: {
+    background: "#ef4444",
     border: "none",
-    borderRadius: 0,
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "9px 14px",
+    padding: "6px 10px",
+    color: "#fff",
+    borderRadius: 6,
     cursor: "pointer",
-    textAlign: "left",
-    fontFamily: "'Outfit', sans-serif",
-    transition: "background 0.12s",
-  },
-  rowInfo: { flex: 1, minWidth: 0 },
-  rowTop: { display: "flex", justifyContent: "space-between", alignItems: "baseline" },
-  rowName: { fontSize: 14, fontWeight: 600, color: "#e5e5e5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  rowTime: { fontSize: 10, color: "#444", flexShrink: 0 },
-  rowBottom: { display: "flex", alignItems: "center", gap: 4, marginTop: 2 },
-  rowLast: { fontSize: 12, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 },
-  badge: {
-    background: "#E8FF47", color: "#0D0D0D",
-    borderRadius: 20, fontSize: 10, fontWeight: 800,
-    padding: "1px 6px", flexShrink: 0,
-  },
-  me: {
-    padding: "12px 14px",
-    borderTop: "1px solid #1f1f1f",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
   },
 };
