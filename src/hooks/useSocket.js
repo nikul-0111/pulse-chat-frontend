@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-const URL = "http://localhost:5000"; // change if deployed
+const URL = "https://pulse-chat-backend-43ul.onrender.com"; // change if deployed
 
 export const useSocket = (userId, handlers = {}) => {
   const socketRef = useRef(null);
