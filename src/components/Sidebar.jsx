@@ -60,7 +60,7 @@ export default function Sidebar({
 
       {/* Header */}
       <div style={s.header}>
-        <h2 style={{ margin: 0 }}>Pulse Chat</h2>
+        <h2 style={{ margin: 0 }}>Nikul's Desi Chat</h2>
       </div>
 
       {/* Search */}

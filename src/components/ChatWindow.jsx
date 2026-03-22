@@ -1,25 +1,27 @@
 import { useState, useEffect, useRef } from "react";
+import { 
+  FiSend, 
+  FiSmile, 
+  FiPaperclip, 
+  FiMic 
+} from "react-icons/fi";
 
 export default function ChatWindow({
   activeUser,
   messages = [],
   currentUser,
-  isTyping,
-  loading,
   onSendMessage,
-  onStartTyping,
-  onStopTyping,
-  onDeleteMessages, 
-  // ✅ NEW
+  onDeleteMessages,
 }) {
   const [input, setInput] = useState("");
-  const [selectedMsgs, setSelectedMsgs] = useState([]); // ✅ selection state
+  const [selectedMsgs, setSelectedMsgs] = useState([]);
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // ✅ select message
   const toggleSelect = (id) => {
     setSelectedMsgs((prev) =>
       prev.includes(id)
@@ -28,11 +30,13 @@ export default function ChatWindow({
     );
   };
 
+  // ✅ delete
   const handleDelete = () => {
-    onDeleteMessages(selectedMsgs); // call parent
+    onDeleteMessages(selectedMsgs);
     setSelectedMsgs([]);
   };
 
+  // ✅ send
   const handleSend = () => {
     if (!input.trim()) return;
     onSendMessage(activeUser._id, input);
@@ -42,19 +46,19 @@ export default function ChatWindow({
   return (
     <div style={s.root}>
 
-      {/* ✅ TOP ACTION BAR (only when selecting) */}
+      {/* ✅ ACTION BAR */}
       {selectedMsgs.length > 0 && (
         <div style={s.actionBar}>
           <span>{selectedMsgs.length} selected</span>
           <button onClick={handleDelete} style={s.deleteBtn}>
-            🗑 Delete
+            Delete
           </button>
         </div>
       )}
 
       {/* HEADER */}
       <div style={s.header}>
-        <h3 style={{ margin: 0 }}>{activeUser.name}</h3>
+        <h3>{activeUser.name}</h3>
       </div>
 
       {/* MESSAGES */}
@@ -66,7 +70,7 @@ export default function ChatWindow({
           return (
             <div
               key={msg._id}
-              onClick={() => toggleSelect(msg._id)} // ✅ click to select
+              onClick={() => toggleSelect(msg._id)}
               style={{
                 ...s.msgRow,
                 justifyContent: mine ? "flex-end" : "flex-start",
@@ -86,28 +90,48 @@ export default function ChatWindow({
             </div>
           );
         })}
-
         <div ref={bottomRef} />
       </div>
 
-      {/* INPUT */}
+      {/* INPUT BAR */}
       <div style={s.inputBox}>
+
+        <button style={s.iconBtn}>
+          <FiSmile size={20} />
+        </button>
+
+        <button style={s.iconBtn}>
+          <FiPaperclip size={20} />
+        </button>
+
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type message..."
           style={s.input}
+      
         />
-        <button onClick={handleSend} style={s.sendBtn}>
-          Send
+
+        <button style={s.iconBtn}>
+          <FiMic size={20} />
         </button>
+
+        <button onClick={handleSend} style={s.sendBtn}>
+          <FiSend size={18} />
+        </button>
+
       </div>
     </div>
   );
 }
 
 const s = {
-  root: { flex: 1, display: "flex", flexDirection: "column", background: "#0D0D0D" },
+  root: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    background: "#0D0D0D",
+  },
 
   header: {
     padding: 12,
@@ -121,7 +145,6 @@ const s = {
     color: "#fff",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
   },
 
   deleteBtn: {
@@ -160,6 +183,8 @@ const s = {
 
   inputBox: {
     display: "flex",
+    alignItems: "center",
+    gap: 6,
     padding: 10,
     borderTop: "1px solid #222",
   },
@@ -172,12 +197,23 @@ const s = {
     outline: "none",
   },
 
+  iconBtn: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: "6px",
+    color: "#aaa",
+  },
+
   sendBtn: {
-    marginLeft: 8,
-    padding: "8px 12px",
     background: "#E8FF47",
     border: "none",
-    borderRadius: 6,
+    borderRadius: "50%",
+    width: 36,
+    height: 36,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     cursor: "pointer",
   },
 };
