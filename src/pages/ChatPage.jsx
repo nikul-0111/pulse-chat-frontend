@@ -15,45 +15,36 @@ export default function ChatPage() {
   const [typingUsers, setTypingUsers] = useState({});
   const [loadingMsgs, setLoadingMsgs] = useState(false);
 
- const handleDeleteMessages = async (ids) => {
-  if (!activeUser) return;
+  // ✅ Delete messages
+  const handleDeleteMessages = async (ids) => {
+    if (!activeUser) return;
 
-  // 🔹 backup old messages (for rollback)
-  const oldMessages = messages[activeUser._id] || [];
+    const oldMessages = messages[activeUser._id] || [];
 
-  // 🔹 optimistic UI update
-  setMessages((prev) => {
-    const updated = { ...prev };
-    updated[activeUser._id] = oldMessages.filter(
-      (msg) => !ids.includes(msg._id)
-    );
-    return updated;
-  });
-
-  try {
-    console.log("Deleting IDs:", ids);
-    console.log("TOKEN:", token);
-
-    // 🔹 call backend
-    await messagesAPI.deleteMessages(ids, token);
-
-  } catch (err) {
-    console.error("Delete failed:", err.message);
-
-    // ❌ rollback if failed
     setMessages((prev) => ({
       ...prev,
-      [activeUser._id]: oldMessages,
+      [activeUser._id]: oldMessages.filter((m) => !ids.includes(m._id)),
     }));
-  }
-};
 
-  // Load users
+    try {
+      await messagesAPI.deleteMessages(ids, token);
+    } catch (err) {
+      console.error("Delete failed:", err.message);
+
+      // rollback
+      setMessages((prev) => ({
+        ...prev,
+        [activeUser._id]: oldMessages,
+      }));
+    }
+  };
+
+  // ✅ Load users
   useEffect(() => {
     usersAPI.getAll(token).then(setUsers).catch(console.error);
   }, [token]);
 
-  // Load messages
+  // ✅ Load messages
   useEffect(() => {
     if (!activeUser) return;
 
@@ -67,38 +58,35 @@ export default function ChatPage() {
           [activeUser._id]: msgs.map(addTimeLabel),
         }));
 
-        // mark read in backend
         messagesAPI.markRead(activeUser._id, token).catch(() => {});
-
-        // instant UI update
-        setMessages((prev) => {
-          const updated = { ...prev };
-          updated[activeUser._id] = (updated[activeUser._id] || []).map((m) =>
-            m.senderId === activeUser._id
-              ? { ...m, status: "read" }
-              : m
-          );
-          return updated;
-        });
       })
       .catch(console.error)
       .finally(() => setLoadingMsgs(false));
   }, [activeUser?._id, token]);
 
-  // Socket handlers
+  // ✅ HANDLE MESSAGE (FIXED - NO DUPLICATE)
   const handleMessage = useCallback(
     (msg) => {
       const key =
         msg.senderId === user._id ? msg.receiverId : msg.senderId;
 
-      setMessages((prev) => ({
-        ...prev,
-        [key]: [...(prev[key] || []), addTimeLabel(msg)],
-      }));
+      setMessages((prev) => {
+        const existing = prev[key] || [];
+
+        // 🔥 prevent duplicate
+        const exists = existing.some((m) => m._id === msg._id);
+        if (exists) return prev;
+
+        return {
+          ...prev,
+          [key]: [...existing, addTimeLabel(msg)],
+        };
+      });
     },
     [user?._id]
   );
 
+  // ✅ Handle read
   const handleRead = useCallback(({ messageId }) => {
     setMessages((prev) => {
       const next = { ...prev };
@@ -111,6 +99,7 @@ export default function ChatPage() {
     });
   }, []);
 
+  // ✅ SOCKET
   const { sendMessage, startTyping, stopTyping } = useSocket(user?._id, {
     onMessage: handleMessage,
     onMessageSent: handleMessage,
@@ -123,26 +112,8 @@ export default function ChatPage() {
     onRead: handleRead,
   });
 
-  // Send message
+  // ✅ SEND MESSAGE (FIXED - NO OPTIMISTIC)
   const handleSend = (receiverId, text) => {
-    const optimistic = {
-      _id: `opt_${Date.now()}`,
-      senderId: user._id,
-      receiverId,
-      text,
-      status: "sent",
-      createdAt: new Date().toISOString(),
-      timeLabel: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
-    setMessages((prev) => ({
-      ...prev,
-      [receiverId]: [...(prev[receiverId] || []), optimistic],
-    }));
-
     sendMessage(receiverId, text);
   };
 
@@ -161,19 +132,18 @@ export default function ChatPage() {
 
   return (
     <div style={styles.container}>
-      
       {/* Sidebar */}
       {(!activeUser || window.innerWidth >= 768) && (
-  <Sidebar
-    users={enrichedUsers}
-    messages={messages}
-    activeUser={activeUser}
-    onSelect={setActiveUser}
-    currentUser={user}
-    onlineUserIds={onlineUserIds}
-    onLogout={logout}
-  />
-)}
+        <Sidebar
+          users={enrichedUsers}
+          messages={messages}
+          activeUser={activeUser}
+          onSelect={setActiveUser}
+          currentUser={user}
+          onlineUserIds={onlineUserIds}
+          onLogout={logout}
+        />
+      )}
 
       {/* Chat */}
       <div style={styles.chatArea}>
@@ -190,7 +160,7 @@ export default function ChatPage() {
             onSendMessage={handleSend}
             onStartTyping={startTyping}
             onStopTyping={stopTyping}
-            onDeleteMessages={handleDeleteMessages} // ✅ IMPORTANT
+            onDeleteMessages={handleDeleteMessages}
           />
         ) : (
           <div style={styles.emptyState}>
@@ -206,16 +176,16 @@ export default function ChatPage() {
 // Styles
 const styles = {
   container: {
-  display: "flex",
-  height: "100vh",
-  flexDirection: window.innerWidth < 768 ? "column" : "row",
-},
+    display: "flex",
+    height: "100vh",
+    flexDirection: window.innerWidth < 768 ? "column" : "row",
+  },
   chatArea: {
-  flex: 1,
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-},
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+  },
   emptyState: {
     margin: "auto",
     textAlign: "center",
