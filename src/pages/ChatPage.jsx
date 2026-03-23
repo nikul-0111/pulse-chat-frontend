@@ -163,15 +163,17 @@ export default function ChatPage() {
     <div style={styles.container}>
       
       {/* Sidebar */}
-      <Sidebar
-        users={enrichedUsers}
-        messages={messages}
-        activeUser={activeUser}
-        onSelect={setActiveUser}
-        currentUser={user}
-        onlineUserIds={onlineUserIds}
-        onLogout={logout}
-      />
+      {(!activeUser || window.innerWidth >= 768) && (
+  <Sidebar
+    users={enrichedUsers}
+    messages={messages}
+    activeUser={activeUser}
+    onSelect={setActiveUser}
+    currentUser={user}
+    onlineUserIds={onlineUserIds}
+    onLogout={logout}
+  />
+)}
 
       {/* Chat */}
       <div style={styles.chatArea}>
@@ -204,16 +206,16 @@ export default function ChatPage() {
 // Styles
 const styles = {
   container: {
-    display: "flex",
-    height: "100vh",
-    background: "#0b0f19",
-  },
+  display: "flex",
+  height: "100vh",
+  flexDirection: window.innerWidth < 768 ? "column" : "row",
+},
   chatArea: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    background: "#0f172a",
-  },
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+},
   emptyState: {
     margin: "auto",
     textAlign: "center",

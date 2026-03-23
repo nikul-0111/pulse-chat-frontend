@@ -130,7 +130,7 @@ export default function Sidebar({
 
 const s = {
   container: {
-    width: 300,
+   width: window.innerWidth < 768 ? "100%" : 300,
     height: "100vh",
     display: "flex",
     flexDirection: "column",

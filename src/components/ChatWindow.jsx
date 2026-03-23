@@ -58,7 +58,14 @@ export default function ChatWindow({
 
       {/* HEADER */}
       <div style={s.header}>
-        <h3>{activeUser.name}</h3>
+       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+  {window.innerWidth < 768 && (
+    <button onClick={() => window.location.reload()} style={s.iconBtn}>
+      ←
+    </button>
+  )}
+  <h3>{activeUser.name}</h3>
+</div>
       </div>
 
       {/* MESSAGES */}
@@ -171,7 +178,7 @@ const s = {
   bubble: {
     padding: "8px 12px",
     borderRadius: 10,
-    maxWidth: "60%",
+    maxWidth: window.innerWidth < 768 ? "80%" : "60%",
   },
 
   time: {
@@ -181,13 +188,16 @@ const s = {
     textAlign: "right",
   },
 
-  inputBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: 10,
-    borderTop: "1px solid #222",
-  },
+ inputBox: {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  padding: 10,
+  borderTop: "1px solid #222",
+  position: "sticky",
+  bottom: 0,
+  background: "#0D0D0D",
+},
 
   input: {
     flex: 1,
