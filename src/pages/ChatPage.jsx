@@ -4,10 +4,11 @@ import { usersAPI, messagesAPI } from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
+import UserProfile from "./UserProfile";
 
 export default function ChatPage() {
   const { user, token, logout } = useAuth();
-
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [users, setUsers] = useState([]);
   const [activeUser, setActiveUser] = useState(null);
   const [messages, setMessages] = useState({});
@@ -30,8 +31,6 @@ export default function ChatPage() {
       await messagesAPI.deleteMessages(ids, token);
     } catch (err) {
       console.error("Delete failed:", err.message);
-
-      // rollback
       setMessages((prev) => ({
         ...prev,
         [activeUser._id]: oldMessages,
@@ -64,18 +63,14 @@ export default function ChatPage() {
       .finally(() => setLoadingMsgs(false));
   }, [activeUser?._id, token]);
 
-  // ✅ HANDLE MESSAGE (FIXED - NO DUPLICATE)
+  // ✅ Handle incoming message
   const handleMessage = useCallback(
     (msg) => {
-      const key =
-        msg.senderId === user._id ? msg.receiverId : msg.senderId;
+      const key = msg.senderId === user._id ? msg.receiverId : msg.senderId;
 
       setMessages((prev) => {
         const existing = prev[key] || [];
-
-        // 🔥 prevent duplicate
-        const exists = existing.some((m) => m._id === msg._id);
-        if (exists) return prev;
+        if (existing.some((m) => m._id === msg._id)) return prev;
 
         return {
           ...prev,
@@ -103,16 +98,13 @@ export default function ChatPage() {
   const { sendMessage, startTyping, stopTyping } = useSocket(user?._id, {
     onMessage: handleMessage,
     onMessageSent: handleMessage,
-    onTypingStart: (id) =>
-      setTypingUsers((p) => ({ ...p, [id]: true })),
-    onTypingStop: (id) =>
-      setTypingUsers((p) => ({ ...p, [id]: false })),
-    onOnlineUsers: (ids) =>
-      setOnlineIds(ids.filter((id) => id !== user._id)),
+    onTypingStart: (id) => setTypingUsers((p) => ({ ...p, [id]: true })),
+    onTypingStop: (id) => setTypingUsers((p) => ({ ...p, [id]: false })),
+    onOnlineUsers: (ids) => setOnlineIds(ids.filter((id) => id !== user._id)),
     onRead: handleRead,
   });
 
-  // ✅ SEND MESSAGE (FIXED - NO OPTIMISTIC)
+  // ✅ Send message
   const handleSend = (receiverId, text) => {
     sendMessage(receiverId, text);
   };
@@ -122,53 +114,62 @@ export default function ChatPage() {
     isOnline: onlineUserIds.includes(u._id),
   }));
 
-  const activeMessages = activeUser
-    ? messages[activeUser._id] || []
-    : [];
-
-  const isTyping = activeUser
-    ? !!typingUsers[activeUser._id]
-    : false;
+  const activeMessages = activeUser ? messages[activeUser._id] || [] : [];
+  const isTyping = activeUser ? !!typingUsers[activeUser._id] : false;
 
   return (
     <div style={styles.container}>
-      {/* Sidebar */}
-      {(!activeUser || window.innerWidth >= 768) && (
-        <Sidebar
-          users={enrichedUsers}
-          messages={messages}
-          activeUser={activeUser}
-          onSelect={setActiveUser}
-          currentUser={user}
-          onlineUserIds={onlineUserIds}
-          onLogout={logout}
+      {selectedProfile ? (
+        <UserProfile
+          user={selectedProfile}
+          onBack={() => setSelectedProfile(null)}
+          onStartChat={(u) => {
+            setSelectedProfile(null);
+            setActiveUser(u);
+          }}
         />
-      )}
+      ) : (
+        <>
+          {/* Sidebar */}
+          {(!activeUser || window.innerWidth >= 768) && (
+            <Sidebar
+              users={enrichedUsers}
+              messages={messages}
+              activeUser={activeUser}
+              onSelect={setActiveUser}
+              onOpenProfile={setSelectedProfile}
+              currentUser={user}
+              onlineUserIds={onlineUserIds}
+              onLogout={logout}
+            />
+          )}
 
-      {/* Chat */}
-      <div style={styles.chatArea}>
-        {activeUser ? (
-          <ChatWindow
-            activeUser={{
-              ...activeUser,
-              isOnline: onlineUserIds.includes(activeUser._id),
-            }}
-            messages={activeMessages}
-            currentUser={user}
-            isTyping={isTyping}
-            loading={loadingMsgs}
-            onSendMessage={handleSend}
-            onStartTyping={startTyping}
-            onStopTyping={stopTyping}
-            onDeleteMessages={handleDeleteMessages}
-          />
-        ) : (
-          <div style={styles.emptyState}>
-            <h2>Select a conversation</h2>
-            <p>Start chatting 🚀</p>
+          {/* Chat */}
+          <div style={styles.chatArea}>
+            {activeUser ? (
+              <ChatWindow
+                activeUser={{
+                  ...activeUser,
+                  isOnline: onlineUserIds.includes(activeUser._id),
+                }}
+                messages={activeMessages}
+                currentUser={user}
+                isTyping={isTyping}
+                loading={loadingMsgs}
+                onSendMessage={handleSend}
+                onStartTyping={startTyping}
+                onStopTyping={stopTyping}
+                onDeleteMessages={handleDeleteMessages}
+              />
+            ) : (
+              <div style={styles.emptyState}>
+                <h2>Select a conversation</h2>
+                <p>Start chatting 🚀</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -193,7 +194,7 @@ const styles = {
   },
 };
 
-// Time formatter
+// Add time labels to messages
 function addTimeLabel(msg) {
   return {
     ...msg,

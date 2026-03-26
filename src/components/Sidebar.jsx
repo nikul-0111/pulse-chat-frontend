@@ -35,6 +35,7 @@ export default function Sidebar({
   messages = {},
   activeUser,
   onSelect,
+  onOpenProfile,
   currentUser,
   onlineUserIds = [],
   onLogout,
@@ -80,7 +81,7 @@ export default function Sidebar({
           return (
             <div
               key={u._id}
-              onClick={() => onSelect(u)}
+           onClick={() => onOpenProfile(u)}
               style={{
                 ...s.user,
                 background:
