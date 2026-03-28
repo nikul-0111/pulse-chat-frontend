@@ -1,6 +1,6 @@
 // const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
   
-const BASE_URL = "https://pulse-chat-backend-43ul.onrender.com"
+const BASE_URL =  "http://localhost:5000";
 function authHeader(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
@@ -31,8 +31,11 @@ export const authAPI = {
 // Users
 export const usersAPI = {
   getAll: (token) => request("/api/users", {}, token),
+  getStatus: (userId, token) => request(`/api/users/status/${userId}`, {}, token),
+  sendRequest: (userId, token) => request(`/api/users/request/${userId}`, { method: "POST" }, token),
+  acceptRequest: (userId, token) => request(`/api/users/accept/${userId}`, { method: "PATCH" }, token),
+  rejectRequest: (userId, token) => request(`/api/users/reject/${userId}`, { method: "PATCH" }, token),
 };
-
 // Messages
 export const messagesAPI = {
   getConversation: (userId, token) =>
