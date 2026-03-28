@@ -69,35 +69,43 @@ export default function UserProfile({ user, onStartChat, onBack }) {
             </button>
           )}
 
-          {status === "requested" && (
-            <button style={s.secondary}>
-              Requested
-            </button>
-          )}
+          
+        {status === "requested" && (
+  <button style={s.secondary}>
+    Requested
+  </button>
+)}
 
-          {status === "pending" && (
-            <>
-              <button
-                style={s.primary}
-                onClick={async () => {
-                  await usersAPI.acceptRequest(user._id, token);
-                  setStatus("friends");
-                }}
-              >
-                Accept
-              </button>
+{status === "pending" && (
+ 
+  <>
+    <button
+      style={s.primary}
+      onClick={async () => {
+        try {
+          const res = await usersAPI.acceptRequest(user._id, token);
+          // ✅ immediately mark as friends and start chat
+          setStatus("friends"); 
+          onStartChat(user); // directly open chat
+        } catch (err) {
+          console.error(err);
+        }
+      }}
+    >
+      Accept
+    </button>
 
-              <button
-                style={s.secondary}
-                onClick={async () => {
-                  await usersAPI.rejectRequest(user._id, token);
-                  setStatus("none");
-                }}
-              >
-                Reject
-              </button>
-            </>
-          )}
+    <button
+      style={s.secondary}
+      onClick={async () => {
+        await usersAPI.rejectRequest(user._id, token);
+        setStatus("none");
+      }}
+    >
+      Reject
+    </button>
+  </>
+)}
 
           {status === "friends" && (
             <button
