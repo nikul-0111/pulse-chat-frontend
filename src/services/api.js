@@ -1,7 +1,8 @@
 // const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  
+  // const BASE_URL =
+  // import.meta.env.VITE_API_URL || "http://localhost:5000";
 // const BASE_URL =  "http://localhost:5000"
- const BASE_URL =  "https://pulse-chat-backend-43ul.onrender.com"
+  const BASE_URL =  "https://pulse-chat-backend-43ul.onrender.com"
 function authHeader(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

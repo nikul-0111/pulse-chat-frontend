@@ -8,17 +8,24 @@ export default function UserProfile({ user, onStartChat, onBack }) {
 
   // ✅ load relationship status
   useEffect(() => {
-    const loadStatus = async () => {
-      try {
-        const res = await usersAPI.getStatus(user._id, token);
-        setStatus(res.status);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  const loadStatus = async () => {
+    try {
+      const res = await usersAPI.getStatus(user._id, token);
+      setStatus(res.status);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-    if (user?._id) loadStatus();
-  }, [user?._id, token]);
+  if (user?._id) {
+    loadStatus();
+
+    // ✅ auto refresh every 2 sec
+    const interval = setInterval(loadStatus, 2000);
+
+    return () => clearInterval(interval);
+  }
+}, [user?._id, token]);
 
   return (
     <div style={s.container}>
