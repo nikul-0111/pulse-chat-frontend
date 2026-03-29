@@ -16,13 +16,32 @@ export default function ChatPage() {
   const [typingUsers, setTypingUsers] = useState({});
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   
-  // Track window width for real-time responsiveness
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // ✅ State to track the actual visible height (fixes black space/keyboard issues)
+  const [vh, setVh] = useState(window.visualViewport ? window.visualViewport.height : window.innerHeight);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      // ✅ Update height when keyboard toggles or window resizes
+      if (window.visualViewport) {
+        setVh(window.visualViewport.height);
+      } else {
+        setVh(window.innerHeight);
+      }
+    };
+
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+    };
   }, []);
 
   // ✅ Delete messages
@@ -67,7 +86,6 @@ export default function ChatPage() {
       .finally(() => setLoadingMsgs(false));
   }, [activeUser?._id, token]);
 
-  // ✅ Handle incoming message
   const handleMessage = useCallback((msg) => {
     const key = msg.senderId === user._id ? msg.receiverId : msg.senderId;
     setMessages((prev) => {
@@ -80,7 +98,6 @@ export default function ChatPage() {
     });
   }, [user?._id]);
 
-  // ✅ Handle read
   const handleRead = useCallback(({ messageId }) => {
     setMessages((prev) => {
       const next = { ...prev };
@@ -93,7 +110,6 @@ export default function ChatPage() {
     });
   }, []);
 
-  // ✅ SOCKET
   const { sendMessage, startTyping, stopTyping } = useSocket(user?._id, {
     onMessage: handleMessage,
     onMessageSent: handleMessage,
@@ -116,7 +132,13 @@ export default function ChatPage() {
   const isTyping = activeUser ? !!typingUsers[activeUser._id] : false;
 
   return (
-    <div style={{ ...styles.container, flexDirection: isMobile ? "column" : "row" }}>
+    <div 
+      style={{ 
+        ...styles.container, 
+        flexDirection: isMobile ? "column" : "row",
+        height: `${vh}px` // ✅ Use the dynamic height here
+      }}
+    >
       {selectedProfile ? (
         <UserProfile
           user={selectedProfile}
@@ -128,7 +150,6 @@ export default function ChatPage() {
         />
       ) : (
         <>
-          {/* Sidebar: Show if not on mobile OR if on mobile and no user is selected */}
           {(!isMobile || !activeUser) && (
             <Sidebar
               users={enrichedUsers}
@@ -142,7 +163,6 @@ export default function ChatPage() {
             />
           )}
 
-          {/* Chat Area: Show if not on mobile OR if on mobile and a user IS selected */}
           {(!isMobile || activeUser) && (
             <div style={styles.chatArea}>
               {activeUser ? (
@@ -159,7 +179,6 @@ export default function ChatPage() {
                   onStartTyping={startTyping}
                   onStopTyping={stopTyping}
                   onDeleteMessages={handleDeleteMessages}
-                  // IMPORTANT: Add a back button for mobile
                   onBack={isMobile ? () => setActiveUser(null) : null}
                 />
               ) : (
@@ -181,9 +200,11 @@ export default function ChatPage() {
 const styles = {
   container: {
     display: "flex",
-    height: "100vh",
     width: "100vw",
     overflow: "hidden",
+    position: "fixed", // ✅ Keeps the app locked to the viewport
+    top: 0,
+    left: 0,
   },
   chatArea: {
     flex: 1,
