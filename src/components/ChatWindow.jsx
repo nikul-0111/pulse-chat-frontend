@@ -1,240 +1,124 @@
 import { useState, useEffect, useRef } from "react";
 import { FiSend, FiSmile, FiPaperclip, FiChevronLeft } from "react-icons/fi";
 
+// ✅ Added Ticks Component for Chat Bubbles
+const Ticks = ({ status, isOnline }) => {
+  if (status === "read") {
+    return (
+      <span style={{ color: "#34b7f1", marginLeft: 4, display: "flex", alignItems: "center" }}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span style={{ color: "#94a3b8", marginLeft: 4, display: "flex", alignItems: "center" }}>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+        {isOnline ? (
+          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
+        ) : (
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        )}
+      </svg>
+    </span>
+  );
+};
+
 export default function ChatWindow({
   activeUser,
   messages = [],
   currentUser,
   onSendMessage,
-  onDeleteMessages,
   isTyping,
   onStartTyping,
   onStopTyping,
   onBack,
 }) {
   const [input, setInput] = useState("");
-  const [selectedMsgs, setSelectedMsgs] = useState([]);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const scrollRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
-  // ✅ Responsive handler
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // ✅ Auto scroll
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
   }, [messages, isTyping]);
 
-  // ✅ Typing handler
   const handleInputChange = (e) => {
-    const val = e.target.value;
-    setInput(val);
-
+    setInput(e.target.value);
     if (onStartTyping) onStartTyping(activeUser._id);
-
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
     typingTimeoutRef.current = setTimeout(() => {
       if (onStopTyping) onStopTyping(activeUser._id);
     }, 1500);
   };
 
-  // ✅ Send message
   const handleSend = () => {
     if (!input.trim()) return;
-
     onSendMessage(activeUser._id, input);
     setInput("");
-
     if (onStopTyping) onStopTyping(activeUser._id);
   };
 
   return (
     <div style={s.root}>
-      {/* HEADER */}
       <div style={s.header}>
         <div style={s.headerContent}>
-          {isMobile && (
-            <button onClick={onBack} style={s.backBtn}>
-              <FiChevronLeft size={26} />
-            </button>
-          )}
-
+          {onBack && <button onClick={onBack} style={s.backBtn}><FiChevronLeft size={26} /></button>}
           <div>
             <div style={s.name}>{activeUser.name}</div>
-            {/* ✅ Dot removed, conditional color applied directly to text */}
-            <div style={{ 
-              ...s.status, 
-              color: activeUser.isOnline ? "#22c55e" : "#64748b" 
-            }}>
+            <div style={{ ...s.status, color: activeUser.isOnline ? "#22c55e" : "#64748b" }}>
               {activeUser.isOnline ? "Online" : "Offline"}
             </div>
           </div>
         </div>
       </div>
 
-      {/* MESSAGES */}
       <div style={s.messages} ref={scrollRef}>
         {messages.map((msg) => {
           const mine = msg.senderId === currentUser?._id;
-          const selected = selectedMsgs.includes(msg._id);
-
           return (
-            <div
-              key={msg._id}
-              style={{
-                ...s.row,
-                justifyContent: mine ? "flex-end" : "flex-start",
-              }}
-              onClick={() =>
-                setSelectedMsgs((prev) =>
-                  prev.includes(msg._id)
-                    ? prev.filter((id) => id !== msg._id)
-                    : [...prev, msg._id]
-                )
-              }
-            >
-              <div
-                style={{
-                  ...s.bubble,
-                  background: mine ? "#E8FF47" : "#1e1e1e",
-                  color: mine ? "#000" : "#fff",
-                  border: selected ? "2px solid #E8FF47" : "none",
-                }}
-              >
+            <div key={msg._id} style={{ ...s.row, justifyContent: mine ? "flex-end" : "flex-start" }}>
+              <div style={{ ...s.bubble, background: mine ? "#E8FF47" : "#1e1e1e", color: mine ? "#000" : "#fff" }}>
                 <div>{msg.text}</div>
-                <div style={s.time}>{msg.timeLabel}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 4 }}>
+                  <span style={s.time}>{msg.timeLabel}</span>
+                  {/* ✅ Added Ticks logic inside bubble */}
+                  {mine && <Ticks status={msg.status} isOnline={activeUser.isOnline} />}
+                </div>
               </div>
             </div>
           );
         })}
-
-        {isTyping && (
-          <div style={s.row}>
-            <div style={{ ...s.bubble, color: "#22c55e" }}>
-              typing...
-            </div>
-          </div>
-        )}
+        {isTyping && <div style={s.row}><div style={{ ...s.bubble, color: "#22c55e" }}>typing...</div></div>}
       </div>
 
-      {/* INPUT */}
       <div style={s.inputBox}>
         <div style={s.inputWrap}>
           <FiSmile />
-          <input
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Type message..."
-            style={s.input}
-          />
+          <input value={input} onChange={handleInputChange} onKeyDown={(e) => e.key === "Enter" && handleSend()} placeholder="Type message..." style={s.input} />
           <FiPaperclip />
-          <button onClick={handleSend} style={s.send}>
-            <FiSend />
-          </button>
+          <button onClick={handleSend} style={s.send}><FiSend /></button>
         </div>
       </div>
     </div>
   );
 }
 
-/* STYLES */
 const s = {
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100dvh",
-    background: "#0D0D0D",
-  },
-  header: {
-    height: 60,
-    borderBottom: "1px solid #222",
-    display: "flex",
-    alignItems: "center",
-    padding: "0 12px",
-  },
-  headerContent: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-  },
-  backBtn: {
-    background: "none",
-    border: "none",
-    color: "#fff",
-    cursor: "pointer",
-  },
-  name: {
-    color: "#fff",
-    fontWeight: 600,
-  },
-  status: {
-    fontSize: 12,
-    display: "flex",
-    alignItems: "center",
-    gap: 5,
-  },
-  messages: {
-    flex: 1,
-    overflowY: "auto",
-    padding: 12,
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-  },
-  row: {
-    display: "flex",
-  },
-  bubble: {
-    padding: "10px 14px",
-    borderRadius: 12,
-    maxWidth: "80%",
-  },
-  time: {
-    fontSize: 10,
-    textAlign: "right",
-    marginTop: 4,
-    opacity: 0.6,
-  },
-  inputBox: {
-    padding: 10,
-    borderTop: "1px solid #222",
-  },
-  inputWrap: {
-    display: "flex",
-    alignItems: "center",
-    background: "#1e1e1e",
-    borderRadius: 20,
-    padding: "6px 10px",
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    border: "none",
-    background: "none",
-    color: "#fff",
-    outline: "none",
-  },
-  send: {
-    background: "#E8FF47",
-    border: "none",
-    borderRadius: "50%",
-    width: 34,
-    height: 34,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-  },
+  root: { display: "flex", flexDirection: "column", height: "100%", background: "#0D0D0D" },
+  header: { height: 60, borderBottom: "1px solid #222", display: "flex", alignItems: "center", padding: "0 12px" },
+  headerContent: { display: "flex", alignItems: "center", gap: 10 },
+  backBtn: { background: "none", border: "none", color: "#fff", cursor: "pointer" },
+  name: { color: "#fff", fontWeight: 600 },
+  status: { fontSize: 12 },
+  messages: { flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 },
+  row: { display: "flex" },
+  bubble: { padding: "10px 14px", borderRadius: 12, maxWidth: "80%" },
+  time: { fontSize: 10, opacity: 0.6 },
+  inputBox: { padding: 10, borderTop: "1px solid #222" },
+  inputWrap: { display: "flex", alignItems: "center", background: "#1e1e1e", borderRadius: 20, padding: "6px 10px", gap: 8 },
+  input: { flex: 1, border: "none", background: "none", color: "#fff", outline: "none" },
+  send: { background: "#E8FF47", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center" },
 };
