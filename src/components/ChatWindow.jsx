@@ -72,13 +72,11 @@ export default function ChatWindow({
 
           <div>
             <div style={s.name}>{activeUser.name}</div>
-            <div style={s.status}>
-              <span
-                style={{
-                  ...s.dot,
-                  background: activeUser.isOnline ? "#22c55e" : "#64748b",
-                }}
-              />
+            {/* ✅ Dot removed, conditional color applied directly to text */}
+            <div style={{ 
+              ...s.status, 
+              color: activeUser.isOnline ? "#22c55e" : "#64748b" 
+            }}>
               {activeUser.isOnline ? "Online" : "Offline"}
             </div>
           </div>
@@ -183,15 +181,9 @@ const s = {
   },
   status: {
     fontSize: 12,
-    color: "#888",
     display: "flex",
     alignItems: "center",
     gap: 5,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: "50%",
   },
   messages: {
     flex: 1,
