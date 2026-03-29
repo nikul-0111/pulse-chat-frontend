@@ -2,13 +2,28 @@ import { useState, useEffect } from "react";
 
 const AVATAR_COLORS = ["#4f46e5", "#ec4899", "#06b6d4", "#f59e0b", "#8b5cf6", "#10b981"];
 
-const Ticks = ({ status }) => {
-  const isRead = status === "read";
+const Ticks = ({ status, isOnline }) => {
+  if (status === "read") {
+    // Double Green Ticks
+    return (
+      <span style={{ color: "#22c55e", marginRight: 4, display: "flex", alignItems: "center" }}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
+        </svg>
+      </span>
+    );
+  }
+  
   return (
-    <span style={{ color: isRead ? "#22c55e" : "#64748b", marginRight: 6, display: "flex", alignItems: "center" }}>
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12"></polyline>
-        {isRead && <polyline points="20 12 9 23 4 18" transform="translate(0, -6)"></polyline>}
+    <span style={{ color: "#94a3b8", marginRight: 4, display: "flex", alignItems: "center" }}>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+        {isOnline ? (
+          // Double Grey Ticks (Delivered)
+          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
+        ) : (
+          // Single Grey Tick (Sent)
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        )}
       </svg>
     </span>
   );
@@ -22,7 +37,7 @@ function Avatar({ name = "", size = 44, isOnline = false, bgOverride }) {
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <div style={{
         width: size, height: size, 
-        borderRadius: "32%", // Modern Squircle
+        borderRadius: "32%",
         background: `linear-gradient(135deg, ${bg}dd 0%, ${bg} 100%)`,
         display: "flex", alignItems: "center", justifyContent: "center",
         fontWeight: 700, color: "#fff", fontSize: size * 0.35,
@@ -102,6 +117,7 @@ export default function Sidebar({
         {filtered.map((u) => {
           const unreadCount = getUnreadCount(u._id);
           const last = getLastMsg(u._id);
+          // ✅ FIX: Derive online status correctly
           const isOnline = onlineUserIds.includes(u._id);
           const isActive = activeUser?._id === u._id;
           const amILastSender = last?.senderId === currentUser?._id;
@@ -132,7 +148,8 @@ export default function Sidebar({
 
                 <div style={s.rowBottom}>
                   <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
-                    {amILastSender && last && <Ticks status={last.status} />}
+                    {/* ✅ FIX: Correctly pass props to Ticks */}
+                    {amILastSender && last && <Ticks status={last.status} isOnline={isOnline} />}
                     <span style={{
                       ...s.lastMsg,
                       color: unreadCount > 0 ? "#fff" : "#94a3b8",
@@ -169,72 +186,24 @@ export default function Sidebar({
 }
 
 const s = {
-  container: { 
-    height: "100vh", 
-    display: "flex", 
-    flexDirection: "column", 
-    background: "#020617", // Deeper navy for professional contrast
-    color: "#fff",
-  },
+  container: { height: "100vh", display: "flex", flexDirection: "column", background: "#020617", color: "#fff" },
   header: { padding: "24px 20px 16px" },
   logoDot: { width: 8, height: 8, borderRadius: "50%", background: "#4f46e5", boxShadow: "0 0 10px #4f46e5" },
   brand: { margin: 0, fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" },
-  
   searchContainer: { padding: "0 16px 16px" },
   searchWrapper: { position: "relative", display: "flex", alignItems: "center" },
   searchIcon: { position: "absolute", left: 12 },
-  search: { 
-    width: "100%",
-    padding: "12px 12px 12px 40px", 
-    borderRadius: 12, 
-    border: "1px solid rgba(255,255,255,0.05)", 
-    background: "#0f172a", 
-    color: "#fff", 
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "border 0.2s"
-  },
-
+  search: { width: "100%", padding: "12px 12px 12px 40px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.05)", background: "#0f172a", color: "#fff", fontSize: 14, outline: "none", boxSizing: "border-box" },
   list: { flex: 1, overflowY: "auto", padding: "0 8px" },
-  user: { 
-    display: "flex", 
-    gap: 14, 
-    cursor: "pointer", 
-    alignItems: "center", 
-    padding: "12px 14px",
-    borderRadius: 16,
-    margin: "2px 0",
-    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-  },
-  
+  user: { display: "flex", gap: 14, cursor: "pointer", alignItems: "center", padding: "12px 14px", borderRadius: 16, margin: "2px 0", transition: "all 0.2s" },
   rowTop: { display: "flex", justifyContent: "space-between", fontSize: 15, marginBottom: 2 },
   rowBottom: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 },
   lastMsg: { fontSize: 13, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" },
   time: { fontSize: 11, fontWeight: 600 },
-  
   badge: { background: "#4f46e5", color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 800 },
-  
   bottom: { padding: "16px", background: "#020617", borderTop: "1px solid rgba(255,255,255,0.05)" },
-  userCard: { 
-    display: "flex", 
-    alignItems: "center", 
-    gap: 12, 
-    padding: "10px", 
-    background: "rgba(255,255,255,0.03)", 
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.05)"
-  },
+  userCard: { display: "flex", alignItems: "center", gap: 12, padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)" },
   currentName: { fontWeight: 600, fontSize: 14, color: "#f8fafc" },
   currentStatus: { fontSize: 11, color: "#22c55e", fontWeight: 600 },
-  logout: { 
-    background: "transparent", 
-    border: "none", 
-    color: "#64748b", 
-    cursor: "pointer", 
-    padding: "8px", 
-    borderRadius: "8px",
-    display: "flex",
-    transition: "0.2s"
-  }
+  logout: { background: "transparent", border: "none", color: "#64748b", cursor: "pointer", padding: "8px", borderRadius: "8px", display: "flex" }
 };

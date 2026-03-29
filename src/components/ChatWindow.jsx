@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { FiSend, FiSmile, FiPaperclip, FiChevronLeft } from "react-icons/fi";
 
-// ✅ Updated Ticks Component with Desi Green (#22c55e)
 const Ticks = ({ status, isOnline }) => {
   if (status === "read") {
-    // Double Green Ticks for Read
     return (
       <span style={{ color: "#22c55e", marginLeft: 4, display: "flex", alignItems: "center" }}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
@@ -14,15 +12,12 @@ const Ticks = ({ status, isOnline }) => {
     );
   }
   
-  // Grey color for Unread
   return (
-    <span style={{ color: "#94a3b8", marginLeft: 4, display: "flex", alignItems: "center" }}>
+    <span style={{ color: "#64748b", marginLeft: 4, display: "flex", alignItems: "center" }}>
       <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
         {isOnline ? (
-          // Double Grey Ticks (Delivered)
           <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
         ) : (
-          // Single Grey Tick (Sent)
           <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
         )}
       </svg>
@@ -89,7 +84,6 @@ export default function ChatWindow({
                 <div style={{ wordBreak: "break-word" }}>{msg.text}</div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 4 }}>
                   <span style={s.time}>{msg.timeLabel}</span>
-                  {/* ✅ Ticks only show on YOUR messages */}
                   {mine && <Ticks status={msg.status} isOnline={activeUser.isOnline} />}
                 </div>
               </div>
