@@ -1,308 +1,171 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { usersAPI } from "../services/api";
-
-export default function UserProfile({ user, onStartChat, onBack }) {
-  const { token } = useAuth();
-  const [status, setStatus] = useState("none");
-
-  // ✅ Format numbers (1K, 1M)
-  const formatNumber = (num) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
-    return num;
-  };
-
-  useEffect(() => {
-    const loadStatus = async () => {
-      try {
-        const res = await usersAPI.getStatus(user._id, token);
-        setStatus(res.status);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    if (user?._id) {
-      loadStatus();
-      const interval = setInterval(loadStatus, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [user?._id, token]);
-
-  return (
-    <div style={s.container}>
-
-      {/* HEADER */}
-      <div style={s.header}>
-        <button onClick={onBack} style={s.backBtn}>←</button>
-        <h3 style={s.title}>Profile</h3>
-        <div style={{ width: 36 }} />
-      </div>
-
-      {/* CARD */}
-      <div style={s.card}>
-
-        {/* PROFILE */}
-        <div style={s.profileTop}>
-          <div style={s.avatar}>
-            {user?.name?.[0]?.toUpperCase()}
-          </div>
-
-          <h2 style={s.name}>{user?.name}</h2>
-          <p style={s.email}>{user?.email}</p>
-
-          <div style={s.badge(status)}>
-            {status}
-          </div>
-        </div>
-
-        {/* STATS */}
-        <div style={s.stats}>
-          <div style={s.statBox}>
-            <span style={s.statNumber}>
-              {formatNumber(user?.followers?.length || 0)}
-            </span>
-            <span style={s.statLabel}>Followers</span>
-          </div>
-
-          <div style={s.divider} />
-
-          <div style={s.statBox}>
-            <span style={s.statNumber}>
-              {formatNumber(user?.following?.length || 0)}
-            </span>
-            <span style={s.statLabel}>Following</span>
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div style={s.actions}>
-
-          {status === "none" && (
-            <button
-              style={s.primary}
-              onClick={async () => {
-                await usersAPI.sendRequest(user._id, token);
-                setStatus("requested");
-              }}
-            >
-              Send Request
-            </button>
-          )}
-
-          {status === "requested" && (
-            <button style={s.disabled}>Requested</button>
-          )}
-
-          {status === "pending" && (
-            <>
-              <button
-                style={s.primary}
-                onClick={async () => {
-                  try {
-                    await usersAPI.acceptRequest(user._id, token);
-                    setStatus("friends");
-                    onStartChat(user);
-                  } catch (err) {
-                    console.error(err);
-                  }
-                }}
-              >
-                Accept
-              </button>
-
-              <button
-                style={s.danger}
-                onClick={async () => {
-                  await usersAPI.rejectRequest(user._id, token);
-                  setStatus("none");
-                }}
-              >
-                Reject
-              </button>
-            </>
-          )}
-
-          {status === "friends" && (
-            <button
-              style={s.primary}
-              onClick={() => onStartChat(user)}
-            >
-              💬 Chat Now
-            </button>
-          )}
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const s = {
   container: {
     height: "100vh",
-    background: "linear-gradient(135deg, #020617, #0f172a)",
+    width: "100%",
+    background: "#020617", // Deepest Navy
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    color: "#fff",
+    color: "#ffffff",
+    position: "relative",
+    overflow: "hidden",
   },
-
+  glow: {
+    position: "absolute",
+    top: "-15%",
+    width: "150%",
+    height: "50%",
+    background: "radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 60%)",
+    zIndex: 0,
+  },
   header: {
     width: "100%",
-    maxWidth: 420,
+    maxWidth: 480,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "16px",
-    borderBottom: "1px solid #1e293b",
+    padding: "20px",
+    zIndex: 1,
   },
-
-  title: {
-    margin: 0,
-    fontWeight: 600,
-  },
-
   backBtn: {
-    background: "#1e293b",
-    border: "none",
-    color: "#fff",
-    fontSize: 18,
-    borderRadius: 10,
-    width: 36,
-    height: 36,
-    cursor: "pointer",
-  },
-
-  card: {
-    marginTop: 40,
-    width: "90%",
-    maxWidth: 420,
-    background: "#1e293b",
-    borderRadius: 20,
-    padding: "30px 25px",
-    textAlign: "center",
-    boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
-  },
-
-  profileTop: {
-    marginBottom: 20,
-  },
-
-  avatar: {
-    width: 95,
-    height: 95,
-    borderRadius: "50%",
-    background: "linear-gradient(135deg, #4f46e5, #9333ea)",
+    background: "rgba(30, 41, 59, 0.4)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    color: "#94a3b8",
+    borderRadius: "14px",
+    width: 42,
+    height: 42,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: 34,
-    fontWeight: "bold",
-    margin: "0 auto 12px",
+    cursor: "pointer",
   },
-
-  name: {
-    margin: 0,
-    fontSize: 22,
-    fontWeight: 600,
+  title: { 
+    margin: 0, 
+    fontSize: 14, 
+    fontWeight: 600, 
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: "1px"
   },
-
-  email: {
-    fontSize: 13,
-    color: "#94a3b8",
-    marginBottom: 10,
+  card: {
+    marginTop: 20,
+    width: "90%",
+    maxWidth: 400,
+    background: "rgba(15, 23, 42, 0.8)", // Solid, professional dark slate
+    backdropFilter: "blur(24px)",
+    borderRadius: "28px",
+    padding: "40px 32px",
+    textAlign: "center",
+    border: "1px solid rgba(255, 255, 255, 0.05)",
+    boxShadow: "0 40px 100px -20px rgba(0, 0, 0, 0.7)",
+    zIndex: 1,
   },
-
-  badge: (status) => ({
-    display: "inline-block",
-    padding: "5px 14px",
-    borderRadius: 20,
-    fontSize: 12,
-    textTransform: "capitalize",
-    background:
-      status === "friends"
-        ? "#16a34a"
-        : status === "pending"
-        ? "#f59e0b"
-        : status === "requested"
-        ? "#475569"
-        : "#334155",
+  avatarWrapper: {
+    position: "relative",
+    width: 120,
+    height: 120,
+    margin: "0 auto 24px",
+  },
+  avatar: {
+    width: "100%",
+    height: "100%",
+    borderRadius: "32%", // Smooth Squircle
+    background: "linear-gradient(135deg, #312e81 0%, #4f46e5 100%)", // Rich Deep Indigo
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 44,
+    fontWeight: "700",
+    color: "#fff",
+    boxShadow: "0 20px 40px -10px rgba(79, 70, 229, 0.3)",
+  },
+  statusDot: (isOnline) => ({
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    background: isOnline ? "#10b981" : "#334155",
+    border: "4px solid #0f172a",
   }),
-
+  name: { 
+    margin: "0 0 6px", 
+    fontSize: 26, 
+    fontWeight: 800, 
+    letterSpacing: "-0.5px" 
+  },
+  email: { 
+    fontSize: 14, 
+    color: "#475569", 
+    marginBottom: 20,
+    fontWeight: 500 
+  },
+  badge: (status) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "8px 18px",
+    borderRadius: "12px",
+    fontSize: 11,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    background: status === "friends" ? "rgba(99, 102, 241, 0.1)" : "rgba(51, 65, 85, 0.3)",
+    color: status === "friends" ? "#818cf8" : "#94a3b8",
+    border: `1px solid ${status === "friends" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.05)"}`,
+  }),
   stats: {
     display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 25,
-    padding: "20px 10px",
-    borderTop: "1px solid #334155",
-    borderBottom: "1px solid #334155",
-    gap: 25,
+    justifyContent: "center",
+    margin: "32px 0",
+    padding: "24px 0",
+    borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
   },
-
-  divider: {
-    width: 1,
-    height: 45,
-    background: "#475569",
-  },
-
-  statBox: {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 8,
-  },
-
-  statNumber: {
-    fontSize: 28,
-    fontWeight: 800,
-    letterSpacing: "1px",
-  },
-
-  statLabel: {
-    fontSize: 14,
-    color: "#94a3b8",
-  },
-
-  actions: {
-    marginTop: 25,
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-
+  statBox: { flex: 1, display: "flex", flexDirection: "column" },
+  statNumber: { fontSize: 24, fontWeight: 800, color: "#f8fafc" },
+  statLabel: { fontSize: 12, color: "#475569", marginTop: 4, fontWeight: 600 },
+  divider: { width: 1, height: 35, background: "rgba(255, 255, 255, 0.05)", alignSelf: "center" },
+  actions: { width: "100%" },
+  buttonGroup: { display: "flex", gap: 12, width: "100%" },
   primary: {
-    background: "linear-gradient(135deg, #4f46e5, #9333ea)",
+    background: "#ffffff", // Pure white for that "Apple" look
     border: "none",
-    padding: "14px",
-    borderRadius: 12,
-    color: "#fff",
+    padding: "18px",
+    borderRadius: "18px",
+    color: "#020617",
     cursor: "pointer",
-    fontWeight: 600,
+    fontWeight: 700,
     fontSize: 15,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     width: "100%",
-    boxShadow: "0 10px 25px rgba(99,102,241,0.4)",
+    boxShadow: "0 10px 25px -5px rgba(255, 255, 255, 0.15)",
   },
-
   danger: {
-    background: "#ef4444",
-    border: "none",
-    padding: "14px",
-    borderRadius: 12,
-    color: "#fff",
+    background: "rgba(239, 68, 68, 0.08)",
+    border: "1px solid rgba(239, 68, 68, 0.15)",
+    padding: "18px",
+    borderRadius: "18px",
+    color: "#ef4444",
     cursor: "pointer",
-    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 60,
   },
-
   disabled: {
-    background: "#334155",
-    border: "none",
-    padding: "14px",
-    borderRadius: 12,
-    color: "#94a3b8",
+    background: "#1e293b",
+    border: "1px solid rgba(255, 255, 255, 0.03)",
+    padding: "18px",
+    borderRadius: "18px",
+    color: "#475569",
     cursor: "not-allowed",
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 600,
   },
 };
