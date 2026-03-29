@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { 
-  FiSend, 
-  FiSmile, 
-  FiPaperclip, 
-  FiMic 
-} from "react-icons/fi";
+import { FiSend, FiSmile, FiPaperclip, FiMic } from "react-icons/fi";
 
 export default function ChatWindow({
   activeUser,
@@ -12,40 +7,59 @@ export default function ChatWindow({
   currentUser,
   onSendMessage,
   onDeleteMessages,
+  // New props from ChatPage
+  isTyping,
+  onStartTyping,
+  onStopTyping,
 }) {
   const [input, setInput] = useState("");
   const [selectedMsgs, setSelectedMsgs] = useState([]);
   const bottomRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]); // Scroll when typing starts too
 
-  // ✅ select message
+  // ✅ Handle Typing Logic
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInput(val);
+
+    // Emit start typing
+    if (onStartTyping) onStartTyping(activeUser._id);
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    // Set timeout to stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      if (onStopTyping) onStopTyping(activeUser._id);
+    }, 2000);
+  };
+
   const toggleSelect = (id) => {
     setSelectedMsgs((prev) =>
-      prev.includes(id)
-        ? prev.filter((m) => m !== id)
-        : [...prev, id]
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
     );
   };
 
-  // ✅ delete
   const handleDelete = () => {
     onDeleteMessages(selectedMsgs);
     setSelectedMsgs([]);
   };
 
-  // ✅ send
   const handleSend = () => {
     if (!input.trim()) return;
     onSendMessage(activeUser._id, input);
     setInput("");
+    // Immediately stop typing indicator on send
+    if (onStopTyping) onStopTyping(activeUser._id);
   };
 
   return (
     <div style={s.root}>
-
       {/* ✅ ACTION BAR */}
       {selectedMsgs.length > 0 && (
         <div style={s.actionBar}>
@@ -58,14 +72,23 @@ export default function ChatWindow({
 
       {/* HEADER */}
       <div style={s.header}>
-       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-  {window.innerWidth < 768 && (
-    <button onClick={() => window.location.reload()} style={s.iconBtn}>
-      ←
-    </button>
-  )}
-  <h3>{activeUser.name}</h3>
-</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {window.innerWidth < 768 && (
+            <button onClick={() => window.location.reload()} style={s.iconBtn}>
+              ←
+            </button>
+          )}
+          <div>
+            <h3 style={{ margin: 0 }}>{activeUser.name}</h3>
+            {/* Online Status Text */}
+            <span style={{ 
+              fontSize: 12, 
+              color: activeUser.isOnline ? "#22c55e" : "#64748b" 
+            }}>
+              {activeUser.isOnline ? "Online" : "Offline"}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* MESSAGES */}
@@ -97,12 +120,21 @@ export default function ChatWindow({
             </div>
           );
         })}
+
+        {/* Typing Indicator Bubble */}
+        {isTyping && (
+          <div style={{ ...s.msgRow, justifyContent: "flex-start" }}>
+            <div style={{ ...s.bubble, background: "#1e1e1e", color: "#22c55e", fontStyle: "italic", fontSize: 13 }}>
+              {activeUser.name} is typing...
+            </div>
+          </div>
+        )}
+        
         <div ref={bottomRef} />
       </div>
 
       {/* INPUT BAR */}
       <div style={s.inputBox}>
-
         <button style={s.iconBtn}>
           <FiSmile size={20} />
         </button>
@@ -113,10 +145,10 @@ export default function ChatWindow({
 
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
+          onKeyPress={(e) => e.key === "Enter" && handleSend()}
           placeholder="Type message..."
           style={s.input}
-      
         />
 
         <button style={s.iconBtn}>
@@ -126,7 +158,6 @@ export default function ChatWindow({
         <button onClick={handleSend} style={s.sendBtn}>
           <FiSend size={18} />
         </button>
-
       </div>
     </div>
   );
@@ -138,12 +169,15 @@ const s = {
     display: "flex",
     flexDirection: "column",
     background: "#0D0D0D",
+    height: "100%",
+    overflow: "hidden", // Prevents layout shifting
   },
 
   header: {
-    padding: 12,
+    padding: "10px 16px",
     borderBottom: "1px solid #222",
     color: "#fff",
+    background: "#0D0D0D",
   },
 
   actionBar: {
@@ -152,6 +186,9 @@ const s = {
     color: "#fff",
     display: "flex",
     justifyContent: "space-between",
+    position: "absolute",
+    width: "100%",
+    zIndex: 10,
   },
 
   deleteBtn: {
@@ -166,19 +203,24 @@ const s = {
   messages: {
     flex: 1,
     overflowY: "auto",
-    padding: 10,
+    padding: "10px 15px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
   },
 
   msgRow: {
     display: "flex",
-    padding: "4px 0",
+    width: "100%",
     cursor: "pointer",
+    margin: "2px 0",
   },
 
   bubble: {
     padding: "8px 12px",
-    borderRadius: 10,
-    maxWidth: window.innerWidth < 768 ? "80%" : "60%",
+    borderRadius: "14px",
+    maxWidth: window.innerWidth < 768 ? "85%" : "70%",
+    wordWrap: "break-word",
   },
 
   time: {
@@ -188,23 +230,24 @@ const s = {
     textAlign: "right",
   },
 
- inputBox: {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  padding: 10,
-  borderTop: "1px solid #222",
-  position: "sticky",
-  bottom: 0,
-  background: "#0D0D0D",
-},
+  inputBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "12px 10px",
+    borderTop: "1px solid #222",
+    background: "#0D0D0D",
+  },
 
   input: {
     flex: 1,
-    padding: 8,
-    borderRadius: 6,
+    padding: "10px 14px",
+    borderRadius: "20px",
     border: "none",
     outline: "none",
+    background: "#1e1e1e",
+    color: "#fff",
+    fontSize: 15,
   },
 
   iconBtn: {
@@ -213,17 +256,20 @@ const s = {
     cursor: "pointer",
     padding: "6px",
     color: "#aaa",
+    display: "flex",
+    alignItems: "center",
   },
 
   sendBtn: {
     background: "#E8FF47",
     border: "none",
     borderRadius: "50%",
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
+    flexShrink: 0,
   },
 };
