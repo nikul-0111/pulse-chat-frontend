@@ -38,6 +38,9 @@ export default function ChatWindow({
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  
+  // Ref for the hidden file input
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -59,6 +62,20 @@ export default function ChatWindow({
     onSendMessage(activeUser._id, input);
     setInput("");
     if (onStopTyping) onStopTyping(activeUser._id);
+  };
+
+  // Function to open gallery
+  const handleGalleryOpen = () => {
+    fileInputRef.current.click();
+  };
+
+  // Function to handle the selected file
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      console.log("Selected file:", file);
+      // Here you can add logic to upload the file or send it via onSendMessage
+    }
   };
 
   return (
@@ -102,6 +119,7 @@ export default function ChatWindow({
       <div style={s.inputBox}>
         <div style={s.inputWrap}>
           <FiSmile style={{ color: "#94a3b8", cursor: "pointer" }} />
+          
           <input 
             value={input} 
             onChange={handleInputChange} 
@@ -109,7 +127,22 @@ export default function ChatWindow({
             placeholder="Type message..." 
             style={s.input} 
           />
-          <FiPaperclip style={{ color: "#94a3b8", cursor: "pointer" }} />
+
+          {/* Hidden File Input */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            style={{ display: 'none' }} 
+            accept="image/*" 
+          />
+
+          {/* Gallery Icon Clickable */}
+          <FiPaperclip 
+            onClick={handleGalleryOpen} 
+            style={{ color: "#94a3b8", cursor: "pointer" }} 
+          />
+          
           <button onClick={handleSend} style={s.send}><FiSend /></button>
         </div>
       </div>
