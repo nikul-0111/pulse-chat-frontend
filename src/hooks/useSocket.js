@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-// // const URL = "https://pulse-chat-backend-43ul.onrender.com";
+ const URL = "https://pulse-chat-backend-43ul.onrender.com";
 // const URL = "http://localhost:5000";
 
 
-const URL = import.meta.env.VITE_SOCKET_URL || "https://pulse-chat-backend-43ul.onrender.com";
+// const URL = import.meta.env.VITE_SOCKET_URL || "https://pulse-chat-backend-43ul.onrender.com";
 
 export const useSocket = (userId, handlers = {}) => {
   const socketRef = useRef(null);
