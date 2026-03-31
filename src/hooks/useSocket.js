@@ -1,38 +1,35 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-const URL = "https://pulse-chat-backend-43ul.onrender.com"; // change if deployed
+// // const URL = "https://pulse-chat-backend-43ul.onrender.com";
+// const URL = "http://localhost:5000";
+
+
+const URL = import.meta.env.VITE_SOCKET_URL || "https://pulse-chat-backend-43ul.onrender.com";
 
 export const useSocket = (userId, handlers = {}) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // ✅ prevent multiple connections
     if (!userId || socketRef.current) return;
 
     const socket = io(URL, {
       query: { userId },
-      transports: ["websocket"], // stable connection
+      transports: ["websocket"], 
     });
 
     socketRef.current = socket;
 
-    // ✅ CONNECT
-    socket.on("connect", () => {
-      console.log("🟢 Connected:", socket.id);
-    });
+    socket.on("connect", () => console.log("🟢 Connected:", socket.id));
 
-    // ✅ MESSAGE RECEIVE
     socket.on("message:receive", (msg) => {
       handlers.onMessage?.(msg);
     });
 
-    // ✅ MESSAGE SENT
     socket.on("message:sent", (msg) => {
       handlers.onMessageSent?.(msg);
     });
 
-    // ✅ TYPING
     socket.on("typing:start", ({ senderId }) => {
       handlers.onTypingStart?.(senderId);
     });
@@ -41,30 +38,27 @@ export const useSocket = (userId, handlers = {}) => {
       handlers.onTypingStop?.(senderId);
     });
 
-    // ✅ ONLINE USERS
     socket.on("users:online", (ids) => {
       handlers.onOnlineUsers?.(ids);
     });
 
-    // ✅ READ RECEIPT
     socket.on("message:read", (data) => {
       handlers.onRead?.(data);
     });
 
-    // ❗ cleanup only on unmount
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
   }, [userId]);
 
-  // ✅ SEND MESSAGE
-  const sendMessage = (receiverId, text) => {
+  // ✅ EXTRA CODE ADDED: Added imageUrl parameter
+  const sendMessage = (receiverId, text, imageUrl = null) => {
     if (!socketRef.current) return;
-    socketRef.current.emit("message:send", { receiverId, text });
+    // Sending both text and imageUrl (one will be empty)
+    socketRef.current.emit("message:send", { receiverId, text, imageUrl });
   };
 
-  // ✅ TYPING EVENTS
   const startTyping = (receiverId) => {
     socketRef.current?.emit("typing:start", { receiverId });
   };

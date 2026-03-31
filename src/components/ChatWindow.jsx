@@ -6,19 +6,18 @@ const Ticks = ({ status, isOnline }) => {
     return (
       <span style={{ color: "#22c55e", marginLeft: 4, display: "flex", alignItems: "center" }}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
-          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
+          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z" />
         </svg>
       </span>
     );
   }
-  
   return (
     <span style={{ color: "#64748b", marginLeft: 4, display: "flex", alignItems: "center" }}>
       <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
         {isOnline ? (
-          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z"/>
+          <path d="M22.31 6.31l-11.53 11.53-5.59-5.59L3.72 13.72l7.06 7.06 13-13zM15.25 6.31l-1.41-1.41-7.06 7.06 1.41 1.41z" />
         ) : (
-          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
         )}
       </svg>
     </span>
@@ -38,8 +37,6 @@ export default function ChatWindow({
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
   const typingTimeoutRef = useRef(null);
-  
-  // Ref for the hidden file input
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -59,27 +56,32 @@ export default function ChatWindow({
 
   const handleSend = () => {
     if (!input.trim()) return;
-    onSendMessage(activeUser._id, input);
+    onSendMessage(activeUser._id, input); // Sends text
     setInput("");
     if (onStopTyping) onStopTyping(activeUser._id);
   };
 
-  // Function to open gallery
   const handleGalleryOpen = () => {
     fileInputRef.current.click();
   };
 
-  // Function to handle the selected file
+  // ✅ CRITICAL FIX: Convert file to Base64 before emitting
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      console.log("Selected file:", file);
-      // Here you can add logic to upload the file or send it via onSendMessage
+      const reader = new FileReader();
+      reader.onload = () => {
+        // This 'reader.result' is the string the backend is looking for
+        onSendMessage(activeUser._id, "", reader.result); 
+      };
+      reader.readAsDataURL(file);
+      e.target.value = null; // Reset input
     }
   };
 
   return (
     <div style={s.root}>
+      {/* Header */}
       <div style={s.header}>
         <div style={s.headerContent}>
           {onBack && <button onClick={onBack} style={s.backBtn}><FiChevronLeft size={26} /></button>}
@@ -92,13 +94,26 @@ export default function ChatWindow({
         </div>
       </div>
 
+      {/* Messages */}
       <div style={s.messages} ref={scrollRef}>
         {messages.map((msg) => {
           const mine = msg.senderId === currentUser?._id;
           return (
             <div key={msg._id} style={{ ...s.row, justifyContent: mine ? "flex-end" : "flex-start" }}>
               <div style={{ ...s.bubble, background: mine ? "#E8FF47" : "#1e1e1e", color: mine ? "#000" : "#fff" }}>
-                <div style={{ wordBreak: "break-word" }}>{msg.text}</div>
+                
+                {/* Render Text */}
+                {msg.text && <div style={{ wordBreak: "break-word", marginBottom: msg.imageUrl ? 8 : 0 }}>{msg.text}</div>}
+
+                {/* Render Image */}
+                {msg.imageUrl && (
+                  <img 
+                    src={msg.imageUrl} 
+                    alt="sent-file" 
+                    style={s.sentImg} 
+                  />
+                )}
+                
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", marginTop: 4 }}>
                   <span style={s.time}>{msg.timeLabel}</span>
                   {mine && <Ticks status={msg.status} isOnline={activeUser.isOnline} />}
@@ -107,6 +122,7 @@ export default function ChatWindow({
             </div>
           );
         })}
+
         {isTyping && (
           <div style={s.row}>
             <div style={{ ...s.bubble, background: "#1e1e1e", color: "#22c55e", fontSize: 12 }}>
@@ -116,10 +132,10 @@ export default function ChatWindow({
         )}
       </div>
 
+      {/* Input */}
       <div style={s.inputBox}>
         <div style={s.inputWrap}>
           <FiSmile style={{ color: "#94a3b8", cursor: "pointer" }} />
-          
           <input 
             value={input} 
             onChange={handleInputChange} 
@@ -127,8 +143,6 @@ export default function ChatWindow({
             placeholder="Type message..." 
             style={s.input} 
           />
-
-          {/* Hidden File Input */}
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -136,13 +150,7 @@ export default function ChatWindow({
             style={{ display: 'none' }} 
             accept="image/*" 
           />
-
-          {/* Gallery Icon Clickable */}
-          <FiPaperclip 
-            onClick={handleGalleryOpen} 
-            style={{ color: "#94a3b8", cursor: "pointer" }} 
-          />
-          
+          <FiPaperclip onClick={handleGalleryOpen} style={{ color: "#94a3b8", cursor: "pointer" }} />
           <button onClick={handleSend} style={s.send}><FiSend /></button>
         </div>
       </div>
@@ -160,6 +168,7 @@ const s = {
   messages: { flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 10 },
   row: { display: "flex" },
   bubble: { padding: "8px 12px", borderRadius: 14, maxWidth: "85%", position: "relative" },
+  sentImg: { maxWidth: "100%", maxHeight: "250px", borderRadius: "8px", marginTop: "5px", display: "block" },
   time: { fontSize: 9, opacity: 0.6, marginLeft: 8 },
   inputBox: { padding: "10px 16px", background: "#0D0D0D" },
   inputWrap: { display: "flex", alignItems: "center", background: "#1e1e1e", borderRadius: 24, padding: "8px 12px", gap: 10 },
